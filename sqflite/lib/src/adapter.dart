@@ -64,18 +64,52 @@ class SqfliteAdapter implements Adapter<sqf.Database> {
 
   /// Inserts or update a record into the table
   Future<T> upsert<T>(Upsert st) async {
-    String strSt = composeUpsert(st);
-    return connection.rawInsert(strSt) as Future<T>;
+    ImmutableUpsertStatement info = st.asImmutable;
+    String strSt = composeUpdate(_createUpdateFromUpsert(st)); //composeUpsert(st);
+    int updatedRowCount = await connection.rawUpdate(strSt);
+    if (updatedRowCount > 0) {
+      return info.values[info.values.keys.first];
+    } else {
+      String strSt = composeUpsert(st); //composeUpsert(st);
+      return connection.rawInsert(strSt) as Future<T>;
+    }
   }
 
   /// Inserts or update records into the table
   Future<void> upsertMany<T>(UpsertMany st) async {
-    List<String> strSt = composeUpsertMany(st);
+    final ImmutableUpsertManyStatement info = st.asImmutable;
+    List<String> upserts = composeUpsertMany(st);
+    List<String> strSt;
+    info.values.forEach((element) {
+      Update update = Update(st.name);
+      update.where(
+          Cond(Field(element.keys.first), Op.Eq, element.values.first));
+      update.setValues(element);
+      strSt.add(composeUpdate(update));
+    });
     final batch = connection.batch();
     for (var query in strSt) {
       batch.execute(query);
     }
-    return batch.commit(noResult: true);
+    List<int> updatedRowsCounts = batch.commit(noResult: false) as List<int>;
+    if (updatedRowsCounts.contains(0)) {
+      final insertBatch = connection.batch();
+      for (int i = 0; i < updatedRowsCounts.length; ++i) {
+        if (updatedRowsCounts[i] == 0) {
+          insertBatch.execute(upserts[i]);
+        }
+      }
+      return insertBatch.commit(noResult: true);
+    }
+  }
+
+  Update _createUpdateFromUpsert(Upsert st) {
+    Update update = Update(st.name);
+    ImmutableUpsertStatement info = st.asImmutable;
+    update.where(
+        Cond(Field(info.values.keys.first), Op.Eq, info.values.values.first));
+    update.setValues(info.values);
+    return update;
   }
 
   /// Inserts many records into the table

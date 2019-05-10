@@ -38,7 +38,7 @@ class Writer {
       _writeFindListByBeanedAssociationList(ass);
       _removeByForeign(ass);
 
-      _writeAssociate(ass);
+      _writeAssociate(ass, _b.primary.first);
 
       if (ass.belongsToMany) {
         _writeDetach(ass);
@@ -158,7 +158,7 @@ class Writer {
 
   void _writeToSetColumns() {
     _w.writeln(
-        'List<SetColumn> toSetColumns(${_b.modelType} model, {bool update = false, Set<String> only, bool onlyNonNull = false}) {');
+        'List<SetColumn> toSetColumns(${_b.modelType} model, {bool update = false, Set<String> only, bool onlyNonNull = true}) {');
     _w.writeln('List<SetColumn> ret = [];');
     _w.writeln();
 
@@ -220,7 +220,7 @@ class Writer {
   void _writeUpsert() {
     if (_b.preloads.isEmpty && !_b.primary.any((f) => f.autoIncrement)) {
       _w.writeln(
-          'Future<dynamic> upsert(${_b.modelType} model, {bool cascade = false, Set<String> only, bool onlyNonNull = false}) async {');
+          'Future<dynamic> upsert(${_b.modelType} model, {bool cascade = false, Set<String> only, bool onlyNonNull = true}) async {');
       _w.write('final Upsert upsert = upserter');
       _w.writeln(
           '.setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull));');
@@ -230,7 +230,7 @@ class Writer {
     }
 
     _w.writeln(
-        'Future<dynamic> upsert(${_b.modelType} model, {bool cascade = false, Set<String> only, bool onlyNonNull = false}) async {');
+        'Future<dynamic> upsert(${_b.modelType} model, {bool cascade = false, Set<String> only, bool onlyNonNull = true}) async {');
     _w.write('final Upsert upsert = upserter');
     _w.write(
         '.setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull))');
@@ -297,7 +297,7 @@ class Writer {
       cascade = 'bool cascade = false, ';
     }
     _w.writeln(
-        'Future<void> upsertMany(List<${_b.modelType}> models, {${cascade} bool onlyNonNull = false, Set<String> only}) async {');
+        'Future<void> upsertMany(List<${_b.modelType}> models, {${cascade} bool onlyNonNull = true, Set<String> only}) async {');
     if (cascade.isNotEmpty) {
       _w.write('if(cascade)  {');
       _w.write('final List<Future> futures = [];');
@@ -331,7 +331,7 @@ class Writer {
   void _writeInsert() {
     if (_b.preloads.isEmpty && !_b.primary.any((f) => f.autoIncrement)) {
       _w.writeln(
-          'Future<dynamic> insert(${_b.modelType} model, {bool cascade = false, bool onlyNonNull = false, Set<String> only}) async {');
+          'Future<dynamic> insert(${_b.modelType} model, {bool cascade = false, bool onlyNonNull = true, Set<String> only}) async {');
       _w.write('final Insert insert = inserter');
       _w.writeln(
           '.setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull));');
@@ -341,7 +341,7 @@ class Writer {
     }
 
     _w.writeln(
-        'Future<dynamic> insert(${_b.modelType} model, {bool cascade = false, bool onlyNonNull = false, Set<String> only}) async {');
+        'Future<dynamic> insert(${_b.modelType} model, {bool cascade = false, bool onlyNonNull = true, Set<String> only}) async {');
     _w.write('final Insert insert = inserter');
     _w.write(
         '.setMany(toSetColumns(model, only: only, onlyNonNull: onlyNonNull))');
@@ -406,7 +406,7 @@ class Writer {
       cascade = 'bool cascade = false,';
     }
     _w.writeln(
-        'Future<void> insertMany(List<${_b.modelType}> models, {${cascade}bool onlyNonNull = false, Set<String> only}) async {');
+        'Future<void> insertMany(List<${_b.modelType}> models, {${cascade}bool onlyNonNull = true, Set<String> only}) async {');
     if (cascade.isNotEmpty) {
       _w.write('if(cascade)  {');
       _w.write('final List<Future> futures = [];');
@@ -437,7 +437,7 @@ class Writer {
 
     if (_b.preloads.length == 0) {
       _w.writeln(
-          'Future<int> update(${_b.modelType} model, {bool cascade = false, bool associate = false, Set<String> only, bool onlyNonNull = false}) async {');
+          'Future<int> update(${_b.modelType} model, {bool cascade = false, bool associate = false, Set<String> only, bool onlyNonNull = true}) async {');
       _w.write('final Update update = updater.');
       final String wheres = _b.primary
           .map((Field f) => 'where(this.${f.field}.eq(model.${f.field}))')
@@ -451,7 +451,7 @@ class Writer {
     }
 
     _w.writeln(
-        'Future<int> update(${_b.modelType} model, {bool cascade = false, bool associate = false, Set<String> only, bool onlyNonNull = false}) async {');
+        'Future<int> update(${_b.modelType} model, {bool cascade = false, bool associate = false, Set<String> only, bool onlyNonNull = true}) async {');
     _w.write('final Update update = updater.');
     final String wheres = _b.primary
         .map((Field f) => 'where(this.${f.field}.eq(model.${f.field}))')
@@ -517,7 +517,7 @@ class Writer {
       cascade = 'bool cascade = false, ';
     }
     _w.writeln(
-        'Future<void> updateMany(List<${_b.modelType}> models, {${cascade} bool onlyNonNull = false, Set<String> only}) async {');
+        'Future<void> updateMany(List<${_b.modelType}> models, {${cascade} bool onlyNonNull = true, Set<String> only}) async {');
     if (cascade.isNotEmpty) {
       _w.write('if(cascade)  {');
       _w.write('final List<Future> futures = [];');
@@ -914,15 +914,17 @@ class Writer {
     }
   }
 
-  void _writeAssociate(BelongsToAssociation m) {
+  void _writeAssociate(BelongsToAssociation m, Field primaryField) {
     _write('void associate${_cap(m.modelName)}(');
     _write('${_b.modelType} child, ');
     _write('${m.modelName} parent');
     _writeln(') {');
-
+    bool hasManyForeignFields = m.fields.length > 1;
     for (int i = 0; i < m.fields.length; i++) {
+      if (hasManyForeignFields) _writeln('if (child.${primaryField.colName} == parent.${m.foreignFields[i].field}) {');
       _writeln(
           'child.${m.fields[i].field} = parent.${m.foreignFields[i].field};');
+      if (hasManyForeignFields) _writeln('}');
     }
 
     _writeln('}');
