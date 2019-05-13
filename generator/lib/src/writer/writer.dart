@@ -38,7 +38,7 @@ class Writer {
       _writeFindListByBeanedAssociationList(ass);
       _removeByForeign(ass);
 
-      _writeAssociate(ass, _b.primary.first);
+      _writeAssociate(ass/*, _b.primary.first*/);
 
       if (ass.belongsToMany) {
         _writeDetach(ass);
@@ -914,17 +914,18 @@ class Writer {
     }
   }
 
-  void _writeAssociate(BelongsToAssociation m, Field primaryField) {
+  //todo: uncomment when trying to implement 2 foreign keys to the same table
+  void _writeAssociate(BelongsToAssociation m/*, Field primaryField*/) {
     _write('void associate${_cap(m.modelName)}(');
     _write('${_b.modelType} child, ');
     _write('${m.modelName} parent');
     _writeln(') {');
-    bool hasManyForeignFields = m.fields.length > 1;
+    //bool hasManyForeignFields = m.fields.length > 1;
     for (int i = 0; i < m.fields.length; i++) {
-      if (hasManyForeignFields) _writeln('if (child.${primaryField.colName} == parent.${m.foreignFields[i].field}) {');
+      /*if (hasManyForeignFields) _writeln('if (child.${primaryField.colName} == parent.${m.foreignFields[i].field}) {');*/
       _writeln(
           'child.${m.fields[i].field} = parent.${m.foreignFields[i].field};');
-      if (hasManyForeignFields) _writeln('}');
+      /*if (hasManyForeignFields) _writeln('}');*/
     }
 
     _writeln('}');
