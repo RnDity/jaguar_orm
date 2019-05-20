@@ -121,20 +121,20 @@ class BelongsTo implements ForeignBase {
   final bool toMany;
 
   const BelongsTo(this.bean,
+      this.byHasMany,
       {this.name,
       this.isNullable = false,
       this.uniqueGroup,
       this.length,
-      this.refCol = 'id',
-      this.byHasMany})
+      this.refCol = 'id'})
       : toMany = false;
 
   const BelongsTo.many(this.bean,
+      this.byHasMany,
       {this.name,
       this.isNullable = false,
       this.uniqueGroup,
       this.length,
-      this.refCol = 'id',
-      this.byHasMany})
+      this.refCol = 'id'})
       : toMany = true;
 }
