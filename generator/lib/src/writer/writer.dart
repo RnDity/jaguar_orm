@@ -40,7 +40,9 @@ class Writer {
       });
       _removeByForeign(ass);
 
-      _writeAssociate(ass, _b.primary.first);
+      for (int i = 0; i < ass.fields.length; i++) {
+          _writeAssociateForFieldAtIndex(ass, i);
+      }
 
       if (ass.belongsToMany) {
         _writeDetach(ass);
@@ -258,7 +260,7 @@ class Writer {
       if (!p.hasMany) {
         _write(_uncap(p.beanInstanceName));
         _writeln(
-            '.associate${_b.modelType}(model.' + p.property.name + ', newModel);');
+            '.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(model.' + p.property.name + ', newModel);');
         _write('await ' +
             _uncap(p.beanInstanceName) +
             '.upsert(model.' +
@@ -268,7 +270,7 @@ class Writer {
         if (p is PreloadOneToX) {
           _write('model.' + p.property.name + '.forEach((x) => ');
           _write(_uncap(p.beanInstanceName));
-          _writeln('.associate${_b.modelType}(x, newModel));');
+          _writeln('.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(x, newModel));');
           _writeln('for(final child in model.${p.property.name}) {');
           _writeln('await ' +
               _uncap(p.beanInstanceName) +
@@ -369,7 +371,7 @@ class Writer {
       if (!p.hasMany) {
         _write(_uncap(p.beanInstanceName));
         _writeln(
-            '.associate${_b.modelType}(model.' + p.property.name + ', newModel);');
+            '.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(model.' + p.property.name + ', newModel);');
         _write('await ' +
             _uncap(p.beanInstanceName) +
             '.insert(model.' +
@@ -379,7 +381,7 @@ class Writer {
         if (p is PreloadOneToX) {
           _write('model.' + p.property.name + '.forEach((x) => ');
           _write(_uncap(p.beanInstanceName));
-          _writeln('.associate${_b.modelType}(x, newModel));');
+          _writeln('.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(x, newModel));');
           _writeln('for(final child in model.${p.property.name}) {');
           _writeln('await ' +
               _uncap(p.beanInstanceName) +
@@ -480,11 +482,11 @@ class Writer {
         if (!p.hasMany) {
           _write(_uncap(p.beanInstanceName));
           _writeln(
-              '.associate${_b.modelType}(model.' + p.property.name + ', newModel);');
+              '.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(model.' + p.property.name + ', newModel);');
         } else {
           _write('model.' + p.property.name + '.forEach((x) => ');
           _write(_uncap(p.beanInstanceName));
-          _writeln('.associate${_b.modelType}(x, newModel));');
+          _writeln('.associate${_b.modelType}By${_cap(p.property.foreignKeyColumn)}(x, newModel));');
         }
         _writeln('}');
       }
@@ -914,18 +916,15 @@ class Writer {
     }
   }
 
-  void _writeAssociate(BelongsToAssociation m, Field primaryField) {
-    _write('void associate${_cap(m.modelName)}(');
+  void _writeAssociateForFieldAtIndex(BelongsToAssociation m, int index) {
+    var foreignField = m.foreignFields[index];
+    _write('void associate${_cap(m.modelName)}By${_cap(foreignField.field)}(');
     _write('${_b.modelType} child, ');
     _write('${m.modelName} parent');
     _writeln(') {');
-    bool hasManyForeignFields = m.fields.length > 1;
-    for (int i = 0; i < m.fields.length; i++) {
-      if (hasManyForeignFields && !m.foreignFields[i].isPrimary) _writeln('if (child.${primaryField.colName} == parent.${m.foreignFields[i].field}) {');
-      _writeln(
-          'child.${m.fields[i].field} = parent.${m.foreignFields[i].field};');
-      if (hasManyForeignFields && !m.foreignFields[i].isPrimary) _writeln('}');
-    }
+
+    _writeln(
+        'child.${m.fields[index].field} = parent.${foreignField.field};');
 
     _writeln('}');
   }
